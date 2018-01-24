@@ -54,7 +54,6 @@ module.exports = (function() {
     logDebugFn,
     logErrorFn,
     logWarnFn,
-    preserveLegacyCase,
     objectNotation,
     prefix,
     queryParameter,
@@ -64,6 +63,8 @@ module.exports = (function() {
 
   // public exports
   var i18n = {};
+
+  i18n.locales = locales;
 
   i18n.version = '0.8.3';
 
@@ -145,9 +146,6 @@ module.exports = (function() {
     logDebugFn = (typeof opt.logDebugFn === 'function') ? opt.logDebugFn : debug;
     logWarnFn = (typeof opt.logWarnFn === 'function') ? opt.logWarnFn : warn;
     logErrorFn = (typeof opt.logErrorFn === 'function') ? opt.logErrorFn : error;
-
-    preserveLegacyCase = (typeof opt.preserveLegacyCase === 'undefined') ?
-      true : opt.preserveLegacyCase;
 
     // when missing locales we try to guess that from directory
     opt.locales = opt.locales || guessLocales(directory);
@@ -528,6 +526,14 @@ module.exports = (function() {
 
   var postProcess = function(msg, namedValues, args, count) {
 
+    if( msg && msg.constructor === Array ){
+      if(args[0] && args[0].sample){
+        const sample = (array) => array[Math.floor(Math.random() * array.length)];
+        msg = sample(msg);
+      } else {
+        return msg;
+      }
+    }
     // test for parsable interval string
     if ((/\|/).test(msg)) {
       msg = parsePluralInterval(msg, count);
@@ -661,12 +667,7 @@ module.exports = (function() {
         var urlObj = url.parse(request.url, true);
         if (urlObj.query[queryParameter]) {
           logDebug('Overriding locale from query: ' + urlObj.query[queryParameter]);
-          request.language = urlObj.query[queryParameter];
-
-          if (preserveLegacyCase) {
-            request.language = request.language.toLowerCase();
-          }
-
+          request.language = urlObj.query[queryParameter].toLowerCase();
           return i18n.setLocale(request, request.language);
         }
       }
